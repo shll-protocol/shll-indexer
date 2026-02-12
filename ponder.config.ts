@@ -1,31 +1,23 @@
 import { createConfig } from "ponder";
-import { http, fallback } from "viem";
+import { http } from "viem";
 
 import { ListingManagerAbi } from "./abis/ListingManagerAbi";
 import { AgentNFAAbi } from "./abis/AgentNFAAbi";
 
-// PublicNode.com has generous rate limits for BSC Testnet
-// Binance nodes as fallback
-const bscTestnetTransport = fallback([
-  http(process.env.PONDER_RPC_URL_97 ?? "https://bsc-testnet-rpc.publicnode.com", {
-    retryCount: 5,
-    retryDelay: 2000,
-  }),
-  http("https://bsc-testnet.public.blastapi.io", {
-    retryCount: 3,
-    retryDelay: 3000,
-  }),
-  http("https://endpoints.omniatech.io/v1/bsc/testnet/public", {
-    retryCount: 3,
-    retryDelay: 3000,
-  }),
-]);
-
+// Try Alchemy again with strict batching to avoid query errors
+// Note: Alchemy free tier on BSC Testnet might still fail on old history
 export default createConfig({
   chains: {
     bscTestnet: {
       id: 97,
-      rpc: bscTestnetTransport,
+      rpc: http("https://bnb-testnet.g.alchemy.com/v2/CVaHvQCguUQe5C-mRLHWe5qzcCmPkA1T", {
+        batch: {
+          batchSize: 100, // Very small batch size to avoid "Response too large" or timeouts
+          wait: 500,     // Wait 500ms between batches to rate limit ourselves
+        },
+        retryCount: 5,
+        retryDelay: 2000,
+      }),
     },
   },
   contracts: {
