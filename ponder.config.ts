@@ -25,14 +25,14 @@ export default createConfig({
     ListingManager: {
       chain: "bscTestnet",
       abi: ListingManagerAbi,
-      address: "0x43e4c56548bf43917516ec55bc6ec5ba4faadd1b",
-      startBlock: 89798900,
+      address: "0x599917b3df76b9A599b4C6f58E6aE5adE9b185B5",
+      startBlock: 89967916,
     },
     AgentNFA: {
       chain: "bscTestnet",
       abi: AgentNFAAbi,
-      address: "0x3a4f53ce6b3493a20a445baffe7bc43accebfaf6",
-      startBlock: 89798900,
+      address: "0x30Ba562CE38fbD0ff300Dfc4b0271fe9c40C4cf0",
+      startBlock: 89967916,
     },
   },
 });
