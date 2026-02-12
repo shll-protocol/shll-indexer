@@ -1,14 +1,33 @@
 import { createConfig } from "ponder";
-import { http } from "viem";
+import { http, fallback } from "viem";
 
 import { ListingManagerAbi } from "./abis/ListingManagerAbi";
 import { AgentNFAAbi } from "./abis/AgentNFAAbi";
+
+// Use fallback transport with multiple BSC Testnet RPCs to avoid rate limiting
+const bscTestnetTransport = fallback([
+  http(process.env.PONDER_RPC_URL_97 ?? "https://data-seed-prebsc-1-s1.binance.org:8545", {
+    batch: true,
+    retryCount: 5,
+    retryDelay: 1000,
+  }),
+  http("https://data-seed-prebsc-2-s1.binance.org:8545", {
+    batch: true,
+    retryCount: 3,
+    retryDelay: 2000,
+  }),
+  http("https://data-seed-prebsc-1-s2.binance.org:8545", {
+    batch: true,
+    retryCount: 3,
+    retryDelay: 2000,
+  }),
+]);
 
 export default createConfig({
   chains: {
     bscTestnet: {
       id: 97,
-      rpc: process.env.PONDER_RPC_URL_97 ?? http("https://data-seed-prebsc-1-s1.binance.org:8545"),
+      rpc: bscTestnetTransport,
     },
   },
   contracts: {
