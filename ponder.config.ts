@@ -10,7 +10,7 @@ export default createConfig({
   chains: {
     bscTestnet: {
       id: 97,
-      rpc: http("https://bnb-testnet.g.alchemy.com/v2/CVaHvQCguUQe5C-mRLHWe5qzcCmPkA1T", {
+      rpc: http(process.env.PONDER_RPC_URL_97 ?? "https://bnb-testnet.g.alchemy.com/v2/CVaHvQCguUQe5C-mRLHWe5qzcCmPkA1T", {
         batch: {
           batchSize: Number(process.env.RPC_BATCH_SIZE ?? 50),
           wait: Number(process.env.RPC_WAIT_MS ?? 1000),

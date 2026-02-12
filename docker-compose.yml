@@ -11,6 +11,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://shll_ponder_user:uaikotc1x22iwcl1t@infrastructure-base-ufkucm/shll_ponder
       - DATABASE_SCHEMA=ponder
+      - PONDER_RPC_URL_97=https://bnb-testnet.g.alchemy.com/v2/CVaHvQCguUQe5C-mRLHWe5qzcCmPkA1T
       # RPC Tuning for Alchemy Free Tier
       - RPC_BATCH_SIZE=50
       - RPC_WAIT_MS=1000
