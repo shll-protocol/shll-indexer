@@ -4,6 +4,7 @@ version: "3.8"
 services:
   shll-indexer:
     image: ghcr.io/kledx/shll-indexer:latest
+    pull_policy: always
     restart: unless-stopped
     ports:
       - "42069:42069"
