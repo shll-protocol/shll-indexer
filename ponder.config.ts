@@ -15,7 +15,7 @@ export default createConfig({
       // Pass RPC as string — let Ponder manage the transport internally
       rpc: rpcUrl,
       // Throttle requests to avoid rate limits on free-tier RPC nodes
-      maxRequestsPerSecond: Number(process.env.MAX_REQUESTS_PER_SECOND ?? 2),
+      maxRequestsPerSecond: Number(process.env.MAX_REQUESTS_PER_SECOND ?? 1),
       // Increase polling interval to reduce load (default 1s is too aggressive)
       pollingInterval: 5_000,
       // Limit block range for eth_getLogs to avoid "limit exceeded" errors
