@@ -12,13 +12,13 @@ export default createConfig({
       id: 97,
       rpc: http("https://bnb-testnet.g.alchemy.com/v2/CVaHvQCguUQe5C-mRLHWe5qzcCmPkA1T", {
         batch: {
-          batchSize: 50, // Reduced batch size
-          wait: 1000,    // Increased wait time to 1s
+          batchSize: Number(process.env.RPC_BATCH_SIZE ?? 50),
+          wait: Number(process.env.RPC_WAIT_MS ?? 1000),
         },
-        retryCount: 10,  // Increased retry count
-        retryDelay: 3000,
+        retryCount: Number(process.env.RPC_RETRY_COUNT ?? 10),
+        retryDelay: Number(process.env.RPC_RETRY_DELAY ?? 3000),
       }),
-      ethGetLogsBlockRange: 2000,
+      ethGetLogsBlockRange: Number(process.env.ETH_GET_LOGS_BLOCK_RANGE ?? 2000),
     },
   },
   contracts: {

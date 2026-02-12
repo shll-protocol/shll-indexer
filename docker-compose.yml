@@ -11,6 +11,12 @@ services:
     environment:
       - DATABASE_URL=postgresql://shll_ponder_user:uaikotc1x22iwcl1t@infrastructure-base-ufkucm/shll_ponder
       - DATABASE_SCHEMA=ponder
+      # RPC Tuning for Alchemy Free Tier
+      - RPC_BATCH_SIZE=50
+      - RPC_WAIT_MS=1000
+      - RPC_RETRY_COUNT=10
+      - RPC_RETRY_DELAY=3000
+      - ETH_GET_LOGS_BLOCK_RANGE=2000
     networks:
       - dokploy-network
 
