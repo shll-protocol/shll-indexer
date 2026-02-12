@@ -4,22 +4,20 @@ import { http, fallback } from "viem";
 import { ListingManagerAbi } from "./abis/ListingManagerAbi";
 import { AgentNFAAbi } from "./abis/AgentNFAAbi";
 
-// Use fallback transport with multiple BSC Testnet RPCs to avoid rate limiting
+// PublicNode.com has generous rate limits for BSC Testnet
+// Binance nodes as fallback
 const bscTestnetTransport = fallback([
-  http(process.env.PONDER_RPC_URL_97 ?? "https://data-seed-prebsc-1-s1.binance.org:8545", {
-    batch: true,
+  http(process.env.PONDER_RPC_URL_97 ?? "https://bsc-testnet-rpc.publicnode.com", {
     retryCount: 5,
-    retryDelay: 1000,
-  }),
-  http("https://data-seed-prebsc-2-s1.binance.org:8545", {
-    batch: true,
-    retryCount: 3,
     retryDelay: 2000,
   }),
-  http("https://data-seed-prebsc-1-s2.binance.org:8545", {
-    batch: true,
+  http("https://bsc-testnet.public.blastapi.io", {
     retryCount: 3,
-    retryDelay: 2000,
+    retryDelay: 3000,
+  }),
+  http("https://endpoints.omniatech.io/v1/bsc/testnet/public", {
+    retryCount: 3,
+    retryDelay: 3000,
   }),
 ]);
 

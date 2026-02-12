@@ -10,7 +10,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://shll_ponder_user:uaikotc1x22iwcl1t@infrastructure-base-ufkucm/shll_ponder
       - DATABASE_SCHEMA=ponder
-      - PONDER_RPC_URL_97=https://data-seed-prebsc-1-s1.binance.org:8545
+      - PONDER_RPC_URL_97=https://bsc-testnet-rpc.publicnode.com
     networks:
       - dokploy-network
 
