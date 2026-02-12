@@ -4,6 +4,10 @@ import { http } from "viem";
 import { ListingManagerAbi } from "./abis/ListingManagerAbi";
 import { AgentNFAAbi } from "./abis/AgentNFAAbi";
 
+console.log("DEBUG: PONDER_RPC_URL_97 =", process.env.PONDER_RPC_URL_97);
+console.log("DEBUG: RPC_BATCH_SIZE =", process.env.RPC_BATCH_SIZE);
+console.log("DEBUG: RPC_WAIT_MS =", process.env.RPC_WAIT_MS);
+
 // Try Alchemy again with strict batching to avoid query errors
 // Note: Alchemy free tier on BSC Testnet might still fail on old history
 export default createConfig({
