@@ -135,11 +135,7 @@ function createRateLimitedRpcTransport(urls: string[], options: RpcTransportOpti
         const idx = usableCandidates[attempts % usableCandidates.length] ?? orderedIndexes[0] ?? 0;
         const state = endpointState[idx]!;
         const waitMs = state.cooldownUntil - Date.now();
-        if (waitMs > 250) {
-          attempts += 1;
-          continue;
-        }
-        if (waitMs > 0) await sleep(waitMs);
+        if (waitMs > 0) await sleep(Math.min(waitMs, 250));
         attempts += 1;
 
         const client = clients[idx] as { request: (params: unknown) => Promise<unknown> };
