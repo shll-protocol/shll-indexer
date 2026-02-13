@@ -4,9 +4,14 @@ import { ListingManagerAbi } from "./abis/ListingManagerAbi";
 import { AgentNFAAbi } from "./abis/AgentNFAAbi";
 
 const rpcUrl = process.env.PONDER_RPC_URL_97 ?? "https://bsctestapi.terminet.io/rpc";
+const maxRequestsPerSecond = Number(process.env.MAX_REQUESTS_PER_SECOND ?? 1);
+const pollingInterval = Number(process.env.POLLING_INTERVAL_MS ?? 10_000);
+const ethGetLogsBlockRange = Number(process.env.ETH_GET_LOGS_BLOCK_RANGE ?? 1);
 
 console.log("DEBUG: PONDER_RPC_URL_97 =", rpcUrl);
-console.log("DEBUG: MAX_RPS =", process.env.MAX_REQUESTS_PER_SECOND);
+console.log("DEBUG: MAX_RPS =", maxRequestsPerSecond);
+console.log("DEBUG: POLLING_INTERVAL_MS =", pollingInterval);
+console.log("DEBUG: ETH_GET_LOGS_BLOCK_RANGE =", ethGetLogsBlockRange);
 
 export default createConfig({
   chains: {
@@ -14,12 +19,10 @@ export default createConfig({
       id: 97,
       // Pass RPC as string — let Ponder manage the transport internally
       rpc: rpcUrl,
-      // Throttle requests to avoid rate limits on free-tier RPC nodes
-      maxRequestsPerSecond: Number(process.env.MAX_REQUESTS_PER_SECOND ?? 1),
-      // Increase polling interval to reduce load (default 1s is too aggressive)
-      pollingInterval: 5_000,
-      // Limit block range for eth_getLogs to avoid "limit exceeded" errors
-      ethGetLogsBlockRange: 5,
+      // Throttle and shrink log windows for strict public RPC providers
+      maxRequestsPerSecond,
+      pollingInterval,
+      ethGetLogsBlockRange,
     },
   },
   contracts: {

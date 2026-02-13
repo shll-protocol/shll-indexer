@@ -12,12 +12,10 @@ services:
       - DATABASE_URL=${DATABASE_URL:-postgresql://shll_ponder_user:uaikotc1x22iwcl1t@infrastructure-base-ufkucm/shll_ponder}
       - DATABASE_SCHEMA=${DATABASE_SCHEMA:-ponder}
       - PONDER_RPC_URL_97=${PONDER_RPC_URL_97:-https://bnb-testnet.g.alchemy.com/v2/CVaHvQCguUQe5C-mRLHWe5qzcCmPkA1T}
-      # RPC Tuning for Alchemy Free Tier
-      - RPC_BATCH_SIZE=${RPC_BATCH_SIZE:-2}
-      - RPC_WAIT_MS=${RPC_WAIT_MS:-2000}
-      - RPC_RETRY_COUNT=${RPC_RETRY_COUNT:-10}
-      - RPC_RETRY_DELAY=${RPC_RETRY_DELAY:-3000}
-      - ETH_GET_LOGS_BLOCK_RANGE=${ETH_GET_LOGS_BLOCK_RANGE:-5}
+      # RPC Tuning (used by ponder.config.ts)
+      - MAX_REQUESTS_PER_SECOND=${MAX_REQUESTS_PER_SECOND:-1}
+      - POLLING_INTERVAL_MS=${POLLING_INTERVAL_MS:-10000}
+      - ETH_GET_LOGS_BLOCK_RANGE=${ETH_GET_LOGS_BLOCK_RANGE:-1}
     networks:
       - dokploy-network
 
