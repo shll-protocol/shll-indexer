@@ -86,4 +86,63 @@ app.get("/api/rentals/:address", async (c) => {
     });
 });
 
+// GET /api/health — Liveness probe
+app.get("/api/health", async (c) => {
+    try {
+        const agents = await db.select().from(schema.agent).limit(1);
+        return c.json({
+            status: "ok",
+            chain: "bsc-testnet",
+            chainId: 97,
+            hasData: agents.length > 0,
+            timestamp: Date.now(),
+        });
+    } catch (err) {
+        return c.json(
+            { status: "error", message: err instanceof Error ? err.message : "unknown" },
+            503
+        );
+    }
+});
+
+// GET /api/ready — Readiness probe (sync status)
+app.get("/api/ready", async (c) => {
+    try {
+        // Latest indexed block from rental_history
+        const latestRental = await db
+            .select()
+            .from(schema.rentalHistory)
+            .orderBy(desc(schema.rentalHistory.blockNumber))
+            .limit(1);
+
+        // Latest indexed block from agents
+        const latestAgent = await db
+            .select()
+            .from(schema.agent)
+            .orderBy(desc(schema.agent.createdAt))
+            .limit(1);
+
+        const rentalBlock = latestRental[0]?.blockNumber ?? 0n;
+        const agentTs = latestAgent[0]?.createdAt ?? 0n;
+
+        // Confirmations threshold (20 blocks for BSC)
+        const CONFIRMATIONS = 20;
+
+        return c.json({
+            status: "ok",
+            chain: "bsc-testnet",
+            checkpoint: rentalBlock.toString(),
+            latestAgentTimestamp: agentTs.toString(),
+            confirmations: CONFIRMATIONS,
+            ready: true,
+            timestamp: Date.now(),
+        });
+    } catch (err) {
+        return c.json(
+            { status: "error", ready: false, message: err instanceof Error ? err.message : "unknown" },
+            503
+        );
+    }
+});
+
 export default app;

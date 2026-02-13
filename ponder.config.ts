@@ -107,9 +107,9 @@ function createRateLimitedRpcTransport(urls: string[], options: RpcTransportOpti
     const sendWithFailover = async (args: unknown) => {
       const method =
         typeof args === "object" &&
-        args !== null &&
-        "method" in (args as Record<string, unknown>) &&
-        typeof (args as Record<string, unknown>).method === "string"
+          args !== null &&
+          "method" in (args as Record<string, unknown>) &&
+          typeof (args as Record<string, unknown>).method === "string"
           ? ((args as Record<string, unknown>).method as string)
           : "";
 
@@ -225,14 +225,14 @@ export default createConfig({
     ListingManager: {
       chain: "bscTestnet",
       abi: ListingManagerAbi,
-      address: "0x599917b3df76b9A599b4C6f58E6aE5adE9b185B5",
-      startBlock: 89967916,
+      address: "0x18ad506d40f730ced90a14a9ceb0770ad4c2b3fd",
+      startBlock: 89980765,
     },
     AgentNFA: {
       chain: "bscTestnet",
       abi: AgentNFAAbi,
-      address: "0x30Ba562CE38fbD0ff300Dfc4b0271fe9c40C4cf0",
-      startBlock: 89967916,
+      address: "0x4c0bcc8a43da7ec63d792fe7d3c932b1d9d88181",
+      startBlock: 89980765,
     },
   },
 });
