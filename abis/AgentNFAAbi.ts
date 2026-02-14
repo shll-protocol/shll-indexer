@@ -26,6 +26,19 @@ export const AgentNFAAbi = [
             { name: "metadataURI", type: "string", indexed: false },
         ],
     },
+    {
+        type: "event",
+        name: "Executed",
+        inputs: [
+            { name: "tokenId", type: "uint256", indexed: true },
+            { name: "caller", type: "address", indexed: true },
+            { name: "account", type: "address", indexed: true },
+            { name: "target", type: "address", indexed: false },
+            { name: "selector", type: "bytes4", indexed: false },
+            { name: "success", type: "bool", indexed: false },
+            { name: "result", type: "bytes", indexed: false },
+        ],
+    },
     // View functions for read contract calls from handlers
     {
         type: "function",

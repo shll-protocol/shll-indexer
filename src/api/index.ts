@@ -86,6 +86,41 @@ app.get("/api/rentals/:address", async (c) => {
     });
 });
 
+// GET /api/activity/:tokenId - Execution activity by tokenId
+app.get("/api/activity/:tokenId", async (c) => {
+    const tokenIdRaw = c.req.param("tokenId");
+    if (!/^\d+$/.test(tokenIdRaw)) {
+        return c.json({ error: "invalid tokenId" }, 400);
+    }
+
+    const limitRaw = c.req.query("limit");
+    let limit = 20;
+    if (limitRaw != null) {
+        const parsed = Number.parseInt(limitRaw, 10);
+        if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 200) {
+            return c.json({ error: "limit must be an integer between 1 and 200" }, 400);
+        }
+        limit = parsed;
+    }
+
+    const rows = await db
+        .select()
+        .from(schema.executionHistory)
+        .where(eq(schema.executionHistory.tokenId, BigInt(tokenIdRaw)))
+        .orderBy(desc(schema.executionHistory.blockNumber), desc(schema.executionHistory.logIndex))
+        .limit(limit);
+
+    return c.json({
+        items: rows.map((r) => ({
+            ...r,
+            tokenId: r.tokenId.toString(),
+            blockNumber: r.blockNumber.toString(),
+            timestamp: r.timestamp.toString(),
+        })),
+        count: rows.length,
+    });
+});
+
 // GET /api/health — Liveness probe
 app.get("/api/health", async (c) => {
     try {

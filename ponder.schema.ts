@@ -49,3 +49,22 @@ export const rentalHistory = onchainTable("rental_history", (t) => ({
   listingIdx: index().on(table.listingId),
   renterIdx: index().on(table.renter),
 }));
+
+// Agent execution activity (source of truth for Console Activity panel)
+export const executionHistory = onchainTable("execution_history", (t) => ({
+  id: t.text().primaryKey(), // txHash-logIndex
+  tokenId: t.bigint().notNull(),
+  caller: t.hex().notNull(),
+  account: t.hex().notNull(),
+  target: t.hex().notNull(),
+  selector: t.hex().notNull(), // bytes4
+  success: t.boolean().notNull(),
+  result: t.hex().notNull(),
+  txHash: t.hex().notNull(),
+  logIndex: t.integer().notNull(),
+  blockNumber: t.bigint().notNull(),
+  timestamp: t.bigint().notNull(),
+}), (table) => ({
+  tokenIdx: index().on(table.tokenId, table.timestamp),
+  txIdx: index().on(table.txHash),
+}));
