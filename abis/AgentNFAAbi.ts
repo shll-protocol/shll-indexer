@@ -74,4 +74,39 @@ export const AgentNFAAbi = [
         outputs: [{ name: "", type: "address" }],
         stateMutability: "view",
     },
+    // V1.3 Rent-to-Mint events
+    {
+        type: "event",
+        name: "TemplateListed",
+        inputs: [
+            { name: "tokenId", type: "uint256", indexed: true },
+            { name: "policyId", type: "bytes32", indexed: false },
+            { name: "packHash", type: "string", indexed: false },
+        ],
+    },
+    {
+        type: "event",
+        name: "InstanceMinted",
+        inputs: [
+            { name: "templateId", type: "uint256", indexed: true },
+            { name: "instanceId", type: "uint256", indexed: true },
+            { name: "owner", type: "address", indexed: true },
+            { name: "account", type: "address", indexed: false },
+        ],
+    },
+    // V1.3 view functions
+    {
+        type: "function",
+        name: "isTemplate",
+        inputs: [{ name: "tokenId", type: "uint256" }],
+        outputs: [{ name: "", type: "bool" }],
+        stateMutability: "view",
+    },
+    {
+        type: "function",
+        name: "templateOf",
+        inputs: [{ name: "tokenId", type: "uint256" }],
+        outputs: [{ name: "", type: "uint256" }],
+        stateMutability: "view",
+    },
 ] as const;

@@ -40,3 +40,34 @@ ponder.on("AgentNFA:Executed", async ({ event, context }) => {
         })
         .onConflictDoNothing();
 });
+
+// V1.3: When a template is registered
+ponder.on("AgentNFA:TemplateListed", async ({ event, context }) => {
+    const { tokenId } = event.args;
+
+    await context.db
+        .update(agent, { id: tokenId.toString() })
+        .set({ isTemplate: true });
+});
+
+// V1.3: When an instance is minted from a template
+ponder.on("AgentNFA:InstanceMinted", async ({ event, context }) => {
+    const { templateId, instanceId, owner, account } = event.args;
+
+    await context.db
+        .insert(agent)
+        .values({
+            id: instanceId.toString(),
+            tokenId: instanceId,
+            owner,
+            account,
+            policyId: "0x" as `0x${string}`, // Will be populated by AgentMinted if also emitted
+            isTemplate: false,
+            templateId,
+            createdAt: event.block.timestamp,
+        })
+        .onConflictDoUpdate({
+            isTemplate: false,
+            templateId,
+        });
+});

@@ -57,7 +57,32 @@ export const ListingManagerAbi = [
             { name: "pricePerDay", type: "uint96" },
             { name: "minDays", type: "uint32" },
             { name: "active", type: "bool" },
+            { name: "isTemplate", type: "bool" },
         ],
         stateMutability: "view",
+    },
+    // V1.3 Rent-to-Mint events
+    {
+        type: "event",
+        name: "TemplateListingCreated",
+        inputs: [
+            { name: "listingId", type: "bytes32", indexed: true },
+            { name: "nfa", type: "address", indexed: true },
+            { name: "tokenId", type: "uint256", indexed: true },
+            { name: "pricePerDay", type: "uint96", indexed: false },
+            { name: "minDays", type: "uint32", indexed: false },
+        ],
+    },
+    {
+        type: "event",
+        name: "InstanceRented",
+        inputs: [
+            { name: "listingId", type: "bytes32", indexed: true },
+            { name: "renter", type: "address", indexed: true },
+            { name: "instanceTokenId", type: "uint256", indexed: true },
+            { name: "instanceAccount", type: "address", indexed: false },
+            { name: "expires", type: "uint64", indexed: false },
+            { name: "totalPaid", type: "uint256", indexed: false },
+        ],
     },
 ] as const;

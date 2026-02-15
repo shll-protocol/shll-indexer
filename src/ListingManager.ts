@@ -130,3 +130,68 @@ ponder.on("ListingManager:ListingCanceled", async ({ event, context }) => {
             updatedAt: event.block.timestamp,
         });
 });
+
+// V1.3: When a template listing is created
+ponder.on("ListingManager:TemplateListingCreated", async ({ event, context }) => {
+    const { listingId, nfa, tokenId, pricePerDay, minDays } = event.args;
+
+    // Try to read agent name from on-chain metadata
+    let agentName = `Agent #${tokenId}`;
+    try {
+        const metadata = await context.client.readContract({
+            address: nfa,
+            abi: getAgentMetadataAbi,
+            functionName: "getAgentMetadata",
+            args: [tokenId],
+        });
+        if (metadata && metadata.persona) {
+            const parsed = JSON.parse(metadata.persona);
+            if (parsed.name) agentName = parsed.name;
+        }
+    } catch (e) {
+        // Fallback to default name
+    }
+
+    await context.db
+        .insert(listing)
+        .values({
+            id: listingId,
+            nfa,
+            tokenId,
+            owner: event.transaction.from,
+            pricePerDay: BigInt(pricePerDay),
+            minDays: Number(minDays),
+            active: true,
+            isTemplate: true,
+            agentName,
+            createdAt: event.block.timestamp,
+            updatedAt: event.block.timestamp,
+        })
+        .onConflictDoUpdate({
+            active: true,
+            isTemplate: true,
+            pricePerDay: BigInt(pricePerDay),
+            minDays: Number(minDays),
+            agentName,
+            updatedAt: event.block.timestamp,
+        });
+});
+
+// V1.3: When a Rent-to-Mint instance is rented
+ponder.on("ListingManager:InstanceRented", async ({ event, context }) => {
+    const { listingId, renter, instanceTokenId, instanceAccount, expires, totalPaid } = event.args;
+
+    // Record rental history
+    await context.db
+        .insert(rentalHistory)
+        .values({
+            id: `${event.transaction.hash}-${event.log.logIndex}`,
+            listingId,
+            renter,
+            expires: BigInt(expires),
+            totalPaid,
+            eventType: "rent-to-mint",
+            timestamp: event.block.timestamp,
+            blockNumber: event.block.number,
+        });
+});

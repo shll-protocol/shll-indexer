@@ -10,8 +10,8 @@ const rpcCandidates = rpcEnv
   .map((s) => s.trim())
   .filter(Boolean);
 const listingManagerAddress =
-  process.env.LISTING_MANAGER_ADDRESS_97 ?? "0x3d8D7e13cC40b2D3bA4AB8Df64D8B2Fd44A98921";
-const agentNfaAddress = process.env.AGENT_NFA_ADDRESS_97 ?? "0x827E342A9835536c03dCDC369626e1a981299f30";
+  process.env.LISTING_MANAGER_ADDRESS_97 ?? "0x7e47e94d4ec2992898300006483d55848efbc315";
+const agentNfaAddress = process.env.AGENT_NFA_ADDRESS_97 ?? "0xcf5d434d855155beba97e3554ef9afea5ed4eb4d";
 
 function readNumberEnv(value: string | undefined, fallback: number, min: number, max: number) {
   const parsed = Number(value);
@@ -30,7 +30,7 @@ const rpcFailoverFailureThreshold = Math.floor(
 const pollingInterval = Math.floor(readNumberEnv(process.env.POLLING_INTERVAL_MS, 10_000, 1_000, 60_000));
 const ethGetLogsBlockRange = Math.floor(readNumberEnv(process.env.ETH_GET_LOGS_BLOCK_RANGE, 1, 1, 5_000));
 const contractStartBlock = Math.floor(
-  readNumberEnv(process.env.CONTRACT_START_BLOCK_97, 90_131_714, 0, Number.MAX_SAFE_INTEGER),
+  readNumberEnv(process.env.CONTRACT_START_BLOCK_97, 90_496_831, 0, Number.MAX_SAFE_INTEGER),
 );
 
 function sleep(ms: number) {

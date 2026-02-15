@@ -10,6 +10,8 @@ export const listing = onchainTable("listing", (t) => ({
   pricePerDay: t.bigint().notNull(),
   minDays: t.integer().notNull(),
   active: t.boolean().notNull().default(true),
+  // V1.3 Rent-to-Mint
+  isTemplate: t.boolean().notNull().default(false),
   // Current rental info (updated on rent/extend)
   renter: t.hex(),
   expires: t.bigint(),
@@ -32,6 +34,9 @@ export const agent = onchainTable("agent", (t) => ({
   owner: t.hex().notNull(),
   account: t.hex().notNull(),
   policyId: t.hex().notNull(),
+  // V1.3 Rent-to-Mint
+  isTemplate: t.boolean().notNull().default(false),
+  templateId: t.bigint(), // non-null only for instances
   createdAt: t.bigint().notNull(),
 }));
 
