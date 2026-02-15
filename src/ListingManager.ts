@@ -123,9 +123,22 @@ ponder.on("ListingManager:LeaseExtended", async ({ event, context }) => {
 ponder.on("ListingManager:ListingCanceled", async ({ event, context }) => {
     const { listingId } = event.args;
 
+    // Use upsert to handle cases where the original ListingCreated event was missed
+    // (e.g. indexer started from a later block)
     await context.db
-        .update(listing, { id: listingId })
-        .set({
+        .insert(listing)
+        .values({
+            id: listingId,
+            nfa: "0x0000000000000000000000000000000000000000", // Placeholder
+            tokenId: 0n, // Placeholder
+            owner: event.transaction.from, // Best guess
+            pricePerDay: 0n,
+            minDays: 0,
+            active: false,
+            createdAt: event.block.timestamp,
+            updatedAt: event.block.timestamp,
+        })
+        .onConflictDoUpdate({
             active: false,
             updatedAt: event.block.timestamp,
         });
