@@ -1,5 +1,5 @@
 import { ponder } from "ponder:registry";
-import { listing, rentalHistory } from "../ponder.schema";
+import { agent, listing, rentalHistory } from "../ponder.schema";
 
 // Minimal ABI for reading agent metadata
 const getAgentMetadataAbi = [{
@@ -56,7 +56,11 @@ ponder.on("ListingManager:ListingCreated", async ({ event, context }) => {
             updatedAt: event.block.timestamp,
         })
         .onConflictDoUpdate({
+            nfa,
+            tokenId,
+            owner: event.transaction.from,
             active: true,
+            isTemplate: false,
             pricePerDay: BigInt(pricePerDay),
             minDays: Number(minDays),
             agentName,
@@ -181,6 +185,9 @@ ponder.on("ListingManager:TemplateListingCreated", async ({ event, context }) =>
             updatedAt: event.block.timestamp,
         })
         .onConflictDoUpdate({
+            nfa,
+            tokenId,
+            owner: event.transaction.from,
             active: true,
             isTemplate: true,
             pricePerDay: BigInt(pricePerDay),
@@ -188,6 +195,11 @@ ponder.on("ListingManager:TemplateListingCreated", async ({ event, context }) =>
             agentName,
             updatedAt: event.block.timestamp,
         });
+
+    // Self-heal: keep agent table consistent even if AgentNFA:TemplateListed was missed.
+    await context.db
+        .update(agent, { id: tokenId.toString() })
+        .set({ isTemplate: true });
 });
 
 // V1.3: When a Rent-to-Mint instance is rented

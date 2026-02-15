@@ -6,6 +6,7 @@ import { cors } from "hono/cors";
 import { desc, eq } from "ponder";
 
 const app = new Hono();
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 // Enable CORS for frontend access
 app.use(
@@ -34,8 +35,13 @@ app.get("/api/listings", async (c) => {
         .where(eq(schema.listing.active, true))
         .orderBy(desc(schema.listing.createdAt));
 
+    // Guard against placeholder rows created by missed historical events.
+    const filtered = listings.filter(
+        (l) => l.nfa.toLowerCase() !== ZERO_ADDRESS && l.isTemplate === true
+    );
+
     return c.json({
-        items: listings.map((l) => ({
+        items: filtered.map((l) => ({
             ...l,
             // Serialize bigints as strings for JSON compatibility
             tokenId: l.tokenId.toString(),
@@ -44,7 +50,7 @@ app.get("/api/listings", async (c) => {
             createdAt: l.createdAt.toString(),
             updatedAt: l.updatedAt.toString(),
         })),
-        count: listings.length,
+        count: filtered.length,
     });
 });
 
@@ -55,10 +61,19 @@ app.get("/api/agents", async (c) => {
         .from(schema.agent)
         .orderBy(desc(schema.agent.createdAt));
 
+    // Fallback for historical index gaps:
+    // if a token has ever appeared in a template listing, treat it as template in API response.
+    const templateListings = await db
+        .select()
+        .from(schema.listing)
+        .where(eq(schema.listing.isTemplate, true));
+    const templateTokenIds = new Set(templateListings.map((l) => l.tokenId.toString()));
+
     return c.json({
         items: agents.map((a) => ({
             ...a,
             tokenId: a.tokenId.toString(),
+            isTemplate: a.isTemplate || templateTokenIds.has(a.tokenId.toString()),
             createdAt: a.createdAt.toString(),
         })),
         count: agents.length,
