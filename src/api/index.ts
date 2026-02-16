@@ -194,5 +194,112 @@ app.get("/api/ready", async (c) => {
         );
     }
 });
+// --- V1.4 API endpoints ---
+
+// GET /api/instance-config/:tokenId - Instance configuration (decoded params)
+app.get("/api/instance-config/:tokenId", async (c) => {
+    const tokenIdRaw = c.req.param("tokenId");
+    if (!/^\d+$/.test(tokenIdRaw)) {
+        return c.json({ error: "invalid tokenId" }, 400);
+    }
+
+    const rows = await db
+        .select()
+        .from(schema.instanceConfig)
+        .where(eq(schema.instanceConfig.id, BigInt(tokenIdRaw)))
+        .limit(1);
+
+    if (rows.length === 0) {
+        return c.json({ found: false, tokenId: tokenIdRaw }, 200);
+    }
+
+    const cfg = rows[0]!;
+    return c.json({
+        found: true,
+        tokenId: tokenIdRaw,
+        policyId: cfg.policyId,
+        version: cfg.version,
+        paramsHash: cfg.paramsHash,
+        paramsPacked: cfg.paramsPacked,
+        slippageBps: cfg.slippageBps,
+        tradeLimit: cfg.tradeLimit.toString(),
+        dailyLimit: cfg.dailyLimit.toString(),
+        tokenGroupId: cfg.tokenGroupId,
+        dexGroupId: cfg.dexGroupId,
+        riskTier: cfg.riskTier,
+        updatedAt: cfg.updatedAt.toString(),
+    });
+});
+
+// GET /api/policies/:policyId/:version - Policy details
+app.get("/api/policies/:policyId/:version", async (c) => {
+    const policyIdRaw = c.req.param("policyId");
+    const versionRaw = c.req.param("version");
+    if (!/^\d+$/.test(policyIdRaw) || !/^\d+$/.test(versionRaw)) {
+        return c.json({ error: "invalid policyId or version" }, 400);
+    }
+
+    const compositeId = `${policyIdRaw}-${versionRaw}`;
+    const rows = await db
+        .select()
+        .from(schema.policy)
+        .where(eq(schema.policy.id, compositeId))
+        .limit(1);
+
+    if (rows.length === 0) {
+        return c.json({ found: false, policyId: policyIdRaw, version: versionRaw }, 200);
+    }
+
+    const p = rows[0]!;
+    return c.json({
+        found: true,
+        policyId: p.policyId,
+        version: p.version,
+        maxSlippageBps: p.maxSlippageBps,
+        maxTradeLimit: p.maxTradeLimit?.toString() ?? null,
+        maxDailyLimit: p.maxDailyLimit?.toString() ?? null,
+        allowedTokenGroups: p.allowedTokenGroups ? JSON.parse(p.allowedTokenGroups) : [],
+        allowedDexGroups: p.allowedDexGroups ? JSON.parse(p.allowedDexGroups) : [],
+        receiverMustBeVault: p.receiverMustBeVault,
+        forbidInfiniteApprove: p.forbidInfiniteApprove,
+        isFrozen: p.isFrozen,
+        createdAt: p.createdAt.toString(),
+    });
+});
+
+// GET /api/groups/:type/:groupId - Group members (token/dex)
+app.get("/api/groups/:type/:groupId", async (c) => {
+    const type = c.req.param("type");
+    const groupIdRaw = c.req.param("groupId");
+    if (!["token", "dex"].includes(type)) {
+        return c.json({ error: "type must be 'token' or 'dex'" }, 400);
+    }
+    if (!/^\d+$/.test(groupIdRaw)) {
+        return c.json({ error: "invalid groupId" }, 400);
+    }
+
+    // Build prefix for composite ID matching: "type-groupId-"
+    const prefix = `${type}-${groupIdRaw}-`;
+    const allMembers = await db
+        .select()
+        .from(schema.groupMember)
+        .where(eq(schema.groupMember.type, type));
+
+    // Filter by groupId (since Ponder may not support compound where easily)
+    const filtered = allMembers.filter(
+        (m) => m.groupId === Number(groupIdRaw)
+    );
+
+    return c.json({
+        type,
+        groupId: Number(groupIdRaw),
+        members: filtered.map((m) => ({
+            address: m.address,
+            allowed: m.allowed,
+            updatedAt: m.updatedAt.toString(),
+        })),
+        count: filtered.length,
+    });
+});
 
 export default app;

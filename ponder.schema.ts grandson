@@ -2,7 +2,6 @@ import { onchainTable, index } from "ponder";
 
 // Listings on the marketplace
 export const listing = onchainTable("listing", (t) => ({
-  // listingId (bytes32) as primary key
   id: t.hex().primaryKey(),
   nfa: t.hex().notNull(),
   tokenId: t.bigint().notNull(),
@@ -10,14 +9,10 @@ export const listing = onchainTable("listing", (t) => ({
   pricePerDay: t.bigint().notNull(),
   minDays: t.integer().notNull(),
   active: t.boolean().notNull().default(true),
-  // V1.3 Rent-to-Mint
   isTemplate: t.boolean().notNull().default(false),
-  // Current rental info (updated on rent/extend)
   renter: t.hex(),
   expires: t.bigint(),
-  // Metadata (enriched from on-chain read)
   agentName: t.text().default("Unknown Agent"),
-  // Timestamps
   createdAt: t.bigint().notNull(),
   updatedAt: t.bigint().notNull(),
 }), (table) => ({
@@ -28,26 +23,24 @@ export const listing = onchainTable("listing", (t) => ({
 
 // Agents (NFTs minted)
 export const agent = onchainTable("agent", (t) => ({
-  // tokenId as string primary key
   id: t.text().primaryKey(),
   tokenId: t.bigint().notNull(),
   owner: t.hex().notNull(),
   account: t.hex().notNull(),
   policyId: t.hex().notNull(),
-  // V1.3 Rent-to-Mint
   isTemplate: t.boolean().notNull().default(false),
-  templateId: t.bigint(), // non-null only for instances
+  templateId: t.bigint(),
   createdAt: t.bigint().notNull(),
 }));
 
 // Rental history records
 export const rentalHistory = onchainTable("rental_history", (t) => ({
-  id: t.text().primaryKey(), // txHash-logIndex
+  id: t.text().primaryKey(),
   listingId: t.hex().notNull(),
   renter: t.hex().notNull(),
   expires: t.bigint().notNull(),
   totalPaid: t.bigint().notNull(),
-  eventType: t.text().notNull(), // "rent" | "extend"
+  eventType: t.text().notNull(),
   timestamp: t.bigint().notNull(),
   blockNumber: t.bigint().notNull(),
 }), (table) => ({
@@ -55,14 +48,14 @@ export const rentalHistory = onchainTable("rental_history", (t) => ({
   renterIdx: index().on(table.renter),
 }));
 
-// Agent execution activity (source of truth for Console Activity panel)
+// Agent execution activity
 export const executionHistory = onchainTable("execution_history", (t) => ({
-  id: t.text().primaryKey(), // txHash-logIndex
+  id: t.text().primaryKey(),
   tokenId: t.bigint().notNull(),
   caller: t.hex().notNull(),
   account: t.hex().notNull(),
   target: t.hex().notNull(),
-  selector: t.hex().notNull(), // bytes4
+  selector: t.hex().notNull(),
   success: t.boolean().notNull(),
   result: t.hex().notNull(),
   txHash: t.hex().notNull(),
@@ -74,19 +67,22 @@ export const executionHistory = onchainTable("execution_history", (t) => ({
   txIdx: index().on(table.txHash),
 }));
 
-// V1.4: Policy Registry tables
+// --- V1.4: Parameterized Policies ---
+
 export const policy = onchainTable("policy", (t) => ({
   id: t.text().primaryKey(), // policyId-version
   policyId: t.integer().notNull(),
   version: t.integer().notNull(),
+  creator: t.hex().notNull(),
+  isFrozen: t.boolean().notNull().default(false),
+  // Schema (Caps)
   maxSlippageBps: t.integer(),
   maxTradeLimit: t.bigint(),
   maxDailyLimit: t.bigint(),
-  allowedTokenGroups: t.text(), // JSON string array
-  allowedDexGroups: t.text(), // JSON string array
+  allowedTokenGroups: t.text(), // array as JSON string
+  allowedDexGroups: t.text(), // array as JSON string
   receiverMustBeVault: t.boolean(),
   forbidInfiniteApprove: t.boolean(),
-  isFrozen: t.boolean().notNull().default(false),
   createdAt: t.bigint().notNull(),
 }));
 
@@ -99,34 +95,27 @@ export const actionRule = onchainTable("action_rule", (t) => ({
   moduleMask: t.bigint().notNull(),
 }));
 
-// V1.4: Group Registry tables
 export const groupMember = onchainTable("group_member", (t) => ({
-  id: t.text().primaryKey(), // type-groupId-address
-  type: t.text().notNull(), // "token" | "dex"
+  id: t.text().primaryKey(), // groupId-address
   groupId: t.integer().notNull(),
   address: t.hex().notNull(),
-  allowed: t.boolean().notNull(),
-  updatedAt: t.bigint().notNull(),
+  active: t.boolean().notNull(),
 }));
 
-// V1.4: Instance Config details
 export const instanceConfig = onchainTable("instance_config", (t) => ({
-  id: t.bigint().primaryKey(), // instance tokenId
+  id: t.bigint().primaryKey(), // instanceId
   policyId: t.integer().notNull(),
   version: t.integer().notNull(),
   paramsPacked: t.hex().notNull(),
-  paramsHash: t.hex().notNull(),
-  // Decoded params for easy querying
-  slippageBps: t.integer().notNull(),
-  tradeLimit: t.bigint().notNull(),
-  dailyLimit: t.bigint().notNull(),
-  tokenGroupId: t.integer().notNull(),
-  dexGroupId: t.integer().notNull(),
-  riskTier: t.integer().notNull(),
+  // Extracted params for easy querying
+  slippageBps: t.integer(),
+  tradeLimit: t.bigint(),
+  dailyLimit: t.bigint(),
+  tokenGroupId: t.integer(),
+  dexGroupId: t.integer(),
   updatedAt: t.bigint().notNull(),
 }));
 
-// V1.4: Spend tracking from PolicyGuardV2
 export const spendHistory = onchainTable("spend_history", (t) => ({
   id: t.text().primaryKey(), // txHash-logIndex
   instanceId: t.bigint().notNull(),

@@ -3,6 +3,10 @@ import { http, type Transport } from "viem";
 
 import { ListingManagerAbi } from "./abis/ListingManagerAbi";
 import { AgentNFAAbi } from "./abis/AgentNFAAbi";
+import { PolicyRegistryAbi } from "./abis/PolicyRegistryAbi";
+import { GroupRegistryAbi } from "./abis/GroupRegistryAbi";
+import { InstanceConfigAbi } from "./abis/InstanceConfigAbi";
+import { PolicyGuardV2Abi } from "./abis/PolicyGuardV2Abi";
 
 const rpcEnv = process.env.PONDER_RPC_URLS_97 ?? process.env.PONDER_RPC_URL_97 ?? "https://bsctestapi.terminet.io/rpc";
 const rpcCandidates = rpcEnv
@@ -12,6 +16,11 @@ const rpcCandidates = rpcEnv
 const listingManagerAddress =
   process.env.LISTING_MANAGER_ADDRESS_97 ?? "0x8c5B5ed82e2fAFfd3cEA3F22d7CA56d033ba658d";
 const agentNfaAddress = process.env.AGENT_NFA_ADDRESS_97 ?? "0x636557BFe696221bd05B78b04FB3d091A322D1dE";
+// V1.4 contract addresses — update after deployment
+const policyRegistryAddress = process.env.POLICY_REGISTRY_ADDRESS_97 ?? "0x0000000000000000000000000000000000000000";
+const groupRegistryAddress = process.env.GROUP_REGISTRY_ADDRESS_97 ?? "0x0000000000000000000000000000000000000000";
+const instanceConfigAddress = process.env.INSTANCE_CONFIG_ADDRESS_97 ?? "0x0000000000000000000000000000000000000000";
+const policyGuardV2Address = process.env.POLICY_GUARD_V2_ADDRESS_97 ?? "0x0000000000000000000000000000000000000000";
 
 function readNumberEnv(value: string | undefined, fallback: number, min: number, max: number) {
   const parsed = Number(value);
@@ -241,6 +250,30 @@ export default createConfig({
       chain: "bscTestnet",
       abi: AgentNFAAbi,
       address: agentNfaAddress as `0x${string}`,
+      startBlock: contractStartBlock,
+    },
+    PolicyRegistry: {
+      chain: "bscTestnet",
+      abi: PolicyRegistryAbi,
+      address: policyRegistryAddress as `0x${string}`,
+      startBlock: contractStartBlock,
+    },
+    GroupRegistry: {
+      chain: "bscTestnet",
+      abi: GroupRegistryAbi,
+      address: groupRegistryAddress as `0x${string}`,
+      startBlock: contractStartBlock,
+    },
+    InstanceConfig: {
+      chain: "bscTestnet",
+      abi: InstanceConfigAbi,
+      address: instanceConfigAddress as `0x${string}`,
+      startBlock: contractStartBlock,
+    },
+    PolicyGuardV2: {
+      chain: "bscTestnet",
+      abi: PolicyGuardV2Abi,
+      address: policyGuardV2Address as `0x${string}`,
       startBlock: contractStartBlock,
     },
   },

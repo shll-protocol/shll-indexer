@@ -1,7 +1,6 @@
 // Import all event handlers
 import "./ListingManager";
 import "./AgentNFA";
-// V1.4 handlers
 import "./PolicyRegistry";
 import "./GroupRegistry";
 import "./InstanceConfig";
