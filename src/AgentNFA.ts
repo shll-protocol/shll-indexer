@@ -73,12 +73,14 @@ ponder.on("AgentNFA:InstanceMinted", async ({ event, context }) => {
 });
 
 // V3.0: When an agent's type is set or updated
-// V3.0 uses keccak256("dca") hashes, NOT right-padded ASCII bytes32
-const AGENT_TYPE_MAP: Record<string, string> = {
-    "0x072fb5d9648043d2fc65e3b92ab24cc0a0e09bc6e9dd0a8b17d995f1c67e5523": "dca",
-    "0xf03a8666449c9c4b8d4441d97da812c3ac61312ec971e34d97c6cc4ecd34eaa8": "llm_trader",
-    // Add more as needed
-};
+// V3.0 uses keccak256("dca") hashes — auto-build lookup from plain strings
+// To add a new type: just append to this array ↓
+import { keccak256, toHex } from "viem";
+
+const KNOWN_TYPES = ["dca", "llm_trader", "hot_token", "llm_defi"];
+const AGENT_TYPE_MAP: Record<string, string> = Object.fromEntries(
+    KNOWN_TYPES.map((t) => [keccak256(toHex(t)), t])
+);
 
 ponder.on("AgentNFA:AgentTypeSet", async ({ event, context }) => {
     const { tokenId, agentType } = event.args;
