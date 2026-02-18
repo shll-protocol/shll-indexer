@@ -197,9 +197,18 @@ ponder.on("ListingManager:TemplateListingCreated", async ({ event, context }) =>
         });
 
     // Self-heal: keep agent table consistent even if AgentNFA:TemplateListed was missed.
-    await context.db
-        .update(agent, { id: tokenId.toString() })
-        .set({ isTemplate: true });
+    // Use find → update to avoid crash when agent record doesn't exist
+    // (e.g. events from a previous NFA deployment that this indexer doesn't track).
+    try {
+        const existing = await context.db.find(agent, { id: tokenId.toString() });
+        if (existing) {
+            await context.db
+                .update(agent, { id: tokenId.toString() })
+                .set({ isTemplate: true });
+        }
+    } catch (_) {
+        // Agent record not found — skip self-heal (event from old NFA deployment)
+    }
 });
 
 // V1.3: When a Rent-to-Mint instance is rented
