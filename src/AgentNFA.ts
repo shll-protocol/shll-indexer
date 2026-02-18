@@ -54,6 +54,10 @@ ponder.on("AgentNFA:TemplateListed", async ({ event, context }) => {
 ponder.on("AgentNFA:InstanceMinted", async ({ event, context }) => {
     const { templateId, instanceId, owner, account } = event.args;
 
+    // Inherit agentType from template (contract doesn't emit AgentTypeSet for instances)
+    const template = await context.db.find(agent, { id: templateId.toString() });
+    const inheritedType = template?.agentType ?? "unknown";
+
     await context.db
         .insert(agent)
         .values({
@@ -64,11 +68,13 @@ ponder.on("AgentNFA:InstanceMinted", async ({ event, context }) => {
             policyId: "0x" as `0x${string}`, // Will be populated by AgentMinted if also emitted
             isTemplate: false,
             templateId,
+            agentType: inheritedType,
             createdAt: event.block.timestamp,
         })
         .onConflictDoUpdate({
             isTemplate: false,
             templateId,
+            agentType: inheritedType,
         });
 });
 
