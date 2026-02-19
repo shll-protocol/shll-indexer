@@ -7,7 +7,7 @@ services:
     pull_policy: always
     restart: unless-stopped
     ports:
-      - "42069:42069"
+      - "${PORT:-42069}:${PORT:-42069}"
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@host:5432/dbname}
       - DATABASE_SCHEMA=${DATABASE_SCHEMA:-ponder}
