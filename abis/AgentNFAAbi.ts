@@ -81,7 +81,7 @@ export const AgentNFAAbi = [
         inputs: [
             { name: "tokenId", type: "uint256", indexed: true },
             { name: "policyId", type: "bytes32", indexed: false },
-            { name: "packHash", type: "string", indexed: false },
+            { name: "templateKey", type: "bytes32", indexed: false },
         ],
     },
     {

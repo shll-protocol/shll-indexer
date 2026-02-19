@@ -5,22 +5,49 @@ import { ListingManagerAbi } from "./abis/ListingManagerAbi";
 import { AgentNFAAbi } from "./abis/AgentNFAAbi";
 import { PolicyGuardV4Abi } from "./abis/PolicyGuardV4Abi";
 
-// Multiple BSC Testnet RPCs for failover — public endpoints are unreliable
-const defaultRpcs = [
-  "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
-  "https://data-seed-prebsc-2-s1.bnbchain.org:8545",
-  "https://bsc-testnet-rpc.publicnode.com",
-].join(",");
-const rpcEnv = process.env.PONDER_RPC_URLS_97 ?? process.env.PONDER_RPC_URL_97 ?? defaultRpcs;
+// ─── Dynamic Chain ID ───────────────────────────────────────────
+// Set CHAIN_ID=56 for BSC Mainnet, defaults to 97 (BSC Testnet)
+const chainId = Number(process.env.CHAIN_ID ?? "97");
+const chainSuffix = `_${chainId}`;
+const chainName = chainId === 56 ? "bsc" : "bscTestnet";
+
+// Default RPCs per network
+const defaultRpcsByChain: Record<number, string> = {
+  97: [
+    "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
+    "https://data-seed-prebsc-2-s1.bnbchain.org:8545",
+    "https://bsc-testnet-rpc.publicnode.com",
+  ].join(","),
+  56: [
+    "https://bsc-dataseed1.binance.org",
+    "https://bsc-dataseed2.binance.org",
+    "https://bsc-rpc.publicnode.com",
+  ].join(","),
+};
+const defaultRpcs = defaultRpcsByChain[chainId] ?? defaultRpcsByChain[97]!;
+
+// Read env vars with chain suffix: e.g. PONDER_RPC_URL_97 or PONDER_RPC_URL_56
+const rpcEnv =
+  process.env[`PONDER_RPC_URLS${chainSuffix}`] ??
+  process.env[`PONDER_RPC_URL${chainSuffix}`] ??
+  defaultRpcs;
 const rpcCandidates = rpcEnv
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
+
 const listingManagerAddress =
-  process.env.LISTING_MANAGER_ADDRESS_97 ?? "0x8c5B5ed82e2fAFfd3cEA3F22d7CA56d033ba658d";
-const agentNfaAddress = process.env.AGENT_NFA_ADDRESS_97 ?? "0x636557BFe696221bd05B78b04FB3d091A322D1dE";
-// V3.0 PolicyGuardV4 composable policy engine (env placeholder until deployed)
-const policyGuardV4Address = process.env.POLICY_GUARD_V4_ADDRESS_97 ?? "0x0000000000000000000000000000000000000000";
+  process.env[`LISTING_MANAGER_ADDRESS${chainSuffix}`] ?? "0x0000000000000000000000000000000000000000";
+const agentNfaAddress =
+  process.env[`AGENT_NFA_ADDRESS${chainSuffix}`] ?? "0x0000000000000000000000000000000000000000";
+const policyGuardV4Address =
+  process.env[`POLICY_GUARD_V4_ADDRESS${chainSuffix}`] ?? "0x0000000000000000000000000000000000000000";
+
+// Default start blocks per network
+const defaultStartBlock: Record<number, number> = {
+  97: 90_562_960,
+  56: 0, // Will be set after mainnet deployment
+};
 
 function readNumberEnv(value: string | undefined, fallback: number, min: number, max: number) {
   const parsed = Number(value);
@@ -39,7 +66,12 @@ const rpcFailoverFailureThreshold = Math.floor(
 const pollingInterval = Math.floor(readNumberEnv(process.env.POLLING_INTERVAL_MS, 10_000, 1_000, 60_000));
 const ethGetLogsBlockRange = Math.floor(readNumberEnv(process.env.ETH_GET_LOGS_BLOCK_RANGE, 1, 1, 5_000));
 const contractStartBlock = Math.floor(
-  readNumberEnv(process.env.CONTRACT_START_BLOCK_97, 90_562_960, 0, Number.MAX_SAFE_INTEGER),
+  readNumberEnv(
+    process.env[`CONTRACT_START_BLOCK${chainSuffix}`],
+    defaultStartBlock[chainId] ?? 0,
+    0,
+    Number.MAX_SAFE_INTEGER,
+  ),
 );
 
 function sleep(ms: number) {
@@ -220,7 +252,8 @@ const rpc = createRateLimitedRpcTransport(rpcCandidates, {
   failureThreshold: rpcFailoverFailureThreshold,
 });
 
-console.log("DEBUG: PONDER_RPC_URL_97 =", rpcCandidates);
+console.log("DEBUG: CHAIN_ID =", chainId, `(${chainName})`);
+console.log(`DEBUG: PONDER_RPC_URL${chainSuffix} =`, rpcCandidates);
 console.log("DEBUG: MAX_RPS =", maxRequestsPerSecond);
 console.log("DEBUG: RPC_MIN_INTERVAL_MS =", minIntervalMs);
 console.log("DEBUG: RPC_TIMEOUT_MS =", rpcTimeoutMs);
@@ -229,14 +262,14 @@ console.log("DEBUG: RPC_FAILOVER_COOLDOWN_MS =", rpcFailoverCooldownMs);
 console.log("DEBUG: RPC_FAILOVER_FAILURE_THRESHOLD =", rpcFailoverFailureThreshold);
 console.log("DEBUG: POLLING_INTERVAL_MS =", pollingInterval);
 console.log("DEBUG: ETH_GET_LOGS_BLOCK_RANGE =", ethGetLogsBlockRange);
-console.log("DEBUG: LISTING_MANAGER_ADDRESS_97 =", listingManagerAddress);
-console.log("DEBUG: AGENT_NFA_ADDRESS_97 =", agentNfaAddress);
-console.log("DEBUG: POLICY_GUARD_V4_ADDRESS_97 =", policyGuardV4Address);
+console.log(`DEBUG: LISTING_MANAGER_ADDRESS${chainSuffix} =`, listingManagerAddress);
+console.log(`DEBUG: AGENT_NFA_ADDRESS${chainSuffix} =`, agentNfaAddress);
+console.log(`DEBUG: POLICY_GUARD_V4_ADDRESS${chainSuffix} =`, policyGuardV4Address);
 
 export default createConfig({
   chains: {
-    bscTestnet: {
-      id: 97,
+    [chainName]: {
+      id: chainId,
       // Custom transport: fast failover + endpoint cooldown (no global eth_getLogs queue).
       rpc,
       // Throttle and shrink log windows for strict public RPC providers
@@ -247,19 +280,19 @@ export default createConfig({
   },
   contracts: {
     ListingManager: {
-      chain: "bscTestnet",
+      chain: chainName as "bscTestnet",
       abi: ListingManagerAbi,
       address: listingManagerAddress as `0x${string}`,
       startBlock: contractStartBlock,
     },
     AgentNFA: {
-      chain: "bscTestnet",
+      chain: chainName as "bscTestnet",
       abi: AgentNFAAbi,
       address: agentNfaAddress as `0x${string}`,
       startBlock: contractStartBlock,
     },
     PolicyGuardV4: {
-      chain: "bscTestnet",
+      chain: chainName as "bscTestnet",
       abi: PolicyGuardV4Abi,
       address: policyGuardV4Address as `0x${string}`,
       startBlock: contractStartBlock,

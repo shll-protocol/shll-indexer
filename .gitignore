@@ -17,3 +17,6 @@ yarn-error.log*
 /generated/
 /.ponder/
 .env
+
+# Mainnet env (contains sensitive config)
+.env.mainnet
