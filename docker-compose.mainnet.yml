@@ -1,0 +1,40 @@
+# docker-compose.mainnet.yml for Dokploy deployment (BSC Mainnet)
+# Service names use -mainnet suffix to avoid DNS conflicts with testnet on dokploy-network
+version: "3.8"
+
+services:
+  shll-indexer-mainnet:
+    image: ghcr.io/kledx/shll-indexer:latest
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - "${PORT:-42070}:${PORT:-42070}"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@host:5432/dbname}
+      - DATABASE_SCHEMA=${DATABASE_SCHEMA:-shll_indexer_mainnet}
+      - CHAIN_ID=${CHAIN_ID:-56}
+
+      # ─── BSC Mainnet (56) ───
+      - PONDER_RPC_URL_56=${PONDER_RPC_URL_56}
+      - PONDER_RPC_URLS_56=${PONDER_RPC_URLS_56}
+      - AGENT_NFA_ADDRESS_56=${AGENT_NFA_ADDRESS_56}
+      - LISTING_MANAGER_ADDRESS_56=${LISTING_MANAGER_ADDRESS_56}
+      - POLICY_GUARD_V4_ADDRESS_56=${POLICY_GUARD_V4_ADDRESS_56}
+      - CONTRACT_START_BLOCK_56=${CONTRACT_START_BLOCK_56}
+
+      # ─── RPC Tuning ───
+      - MAX_REQUESTS_PER_SECOND=${MAX_REQUESTS_PER_SECOND:-1}
+      - RPC_MIN_INTERVAL_MS=${RPC_MIN_INTERVAL_MS:-0}
+      - RPC_TIMEOUT_MS=${RPC_TIMEOUT_MS:-5000}
+      - RPC_FAILOVER_MAX_ATTEMPTS=${RPC_FAILOVER_MAX_ATTEMPTS:-2}
+      - RPC_FAILOVER_COOLDOWN_MS=${RPC_FAILOVER_COOLDOWN_MS:-30000}
+      - RPC_FAILOVER_FAILURE_THRESHOLD=${RPC_FAILOVER_FAILURE_THRESHOLD:-2}
+      - POLLING_INTERVAL_MS=${POLLING_INTERVAL_MS:-10000}
+      - ETH_GET_LOGS_BLOCK_RANGE=${ETH_GET_LOGS_BLOCK_RANGE:-1}
+
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
