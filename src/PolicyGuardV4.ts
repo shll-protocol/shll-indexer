@@ -1,5 +1,5 @@
 import { ponder } from "ponder:registry";
-import { templatePolicy, policyPlugin } from "../ponder.schema";
+import { templatePolicy, policyPlugin, commitFailure } from "../ponder.schema";
 
 // ═══════════════════════════════════════════════════════
 // IPolicy interface — for reading policyType() from plugin contracts
@@ -130,4 +130,22 @@ ponder.on("PolicyGuardV4:InstanceBound", async ({ event, context }) => {
             err,
         );
     }
+});
+
+// ═══════════════════════════════════════════════════════
+//         P-2026-032: COMMIT FAILURES
+// ═══════════════════════════════════════════════════════
+
+ponder.on("PolicyGuardV4:CommitFailed", async ({ event, context }) => {
+    const { instanceId, policy, reason } = event.args;
+
+    await context.db.insert(commitFailure).values({
+        id: `${event.transaction.hash}-${event.log.logIndex}`,
+        instanceId,
+        policyAddress: policy,
+        reason: reason as `0x${string}`,
+        txHash: event.transaction.hash,
+        blockNumber: event.block.number,
+        timestamp: event.block.timestamp,
+    }).onConflictDoNothing();
 });

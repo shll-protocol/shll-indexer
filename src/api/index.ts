@@ -284,6 +284,35 @@ app.get("/api/stats", async (c) => {
     });
 });
 
+// P-2026-032: GET /api/agents/:tokenId/commit-failures — PolicyGuardV4 commit failures
+app.get("/api/agents/:tokenId/commit-failures", async (c) => {
+    const tokenIdRaw = c.req.param("tokenId");
+    if (!/^\d+$/.test(tokenIdRaw)) {
+        return c.json({ error: "invalid tokenId" }, 400);
+    }
+
+    const limitRaw = c.req.query("limit");
+    const limit = Math.min(Math.max(1, Number(limitRaw ?? 50)), 200);
+
+    const rows = await db
+        .select()
+        .from(schema.commitFailure)
+        .where(eq(schema.commitFailure.instanceId, BigInt(tokenIdRaw)))
+        .orderBy(desc(schema.commitFailure.timestamp))
+        .limit(limit);
+
+    return c.json({
+        tokenId: tokenIdRaw,
+        items: rows.map((r) => ({
+            ...r,
+            instanceId: r.instanceId.toString(),
+            blockNumber: r.blockNumber.toString(),
+            timestamp: r.timestamp.toString(),
+        })),
+        count: rows.length,
+    });
+});
+
 // GET /api/groups/:type/:groupId - Group members (token/dex) — retained from V1.4
 app.get("/api/groups/:type/:groupId", async (c) => {
     const type = c.req.param("type");

@@ -66,6 +66,16 @@ export const PolicyGuardV4Abi = [
         ],
         anonymous: false,
     },
+    {
+        type: "event",
+        name: "CommitFailed",
+        inputs: [
+            { name: "instanceId", type: "uint256", indexed: true },
+            { name: "policy", type: "address", indexed: true },
+            { name: "reason", type: "bytes", indexed: false },
+        ],
+        anonymous: false,
+    },
 
     // ═══════════════════════════════════════════════════════
     //                    VIEW FUNCTIONS

@@ -128,3 +128,16 @@ export const spendHistory = onchainTable("spend_history", (t) => ({
 }), (table) => ({
   instanceIdx: index().on(table.instanceId, table.timestamp),
 }));
+
+// P-2026-032: PolicyGuardV4 commit failures (post-execution policy errors)
+export const commitFailure = onchainTable("commit_failure", (t) => ({
+  id: t.text().primaryKey(),          // txHash-logIndex
+  instanceId: t.bigint().notNull(),
+  policyAddress: t.hex().notNull(),
+  reason: t.hex().notNull(),          // raw bytes reason from revert
+  txHash: t.hex().notNull(),
+  blockNumber: t.bigint().notNull(),
+  timestamp: t.bigint().notNull(),
+}), (table) => ({
+  instanceIdx: index().on(table.instanceId, table.timestamp),
+}));
