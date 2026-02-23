@@ -143,6 +143,7 @@ function createRateLimitedRpcTransport(urls: string[], options: RpcTransportOpti
 
   const { requestIntervalMs, timeoutMs, maxAttempts, cooldownMs, failureThreshold } = options;
   let lastLogsRequestAt = 0;
+  let logsLock = false;
   let nextIndex = 0;
 
   return (({ chain, timeout }) => {
@@ -166,12 +167,18 @@ function createRateLimitedRpcTransport(urls: string[], options: RpcTransportOpti
           ? ((args as Record<string, unknown>).method as string)
           : "";
 
+      // Serial gate: only one eth_getLogs at a time, with full delay
       if (method === "eth_getLogs" && requestIntervalMs > 0) {
+        while (logsLock) {
+          await sleep(50);
+        }
+        logsLock = true;
         const elapsed = Date.now() - lastLogsRequestAt;
         if (elapsed < requestIntervalMs) {
-          await sleep(Math.min(requestIntervalMs - elapsed, 250));
+          await sleep(requestIntervalMs - elapsed);
         }
         lastLogsRequestAt = Date.now();
+        logsLock = false;
       }
 
       // Round-robin: advance starting index BEFORE selecting candidates
