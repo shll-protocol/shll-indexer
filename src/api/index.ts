@@ -153,12 +153,14 @@ app.get("/api/activity/:tokenId", async (c) => {
 
 // GET /api/health — Liveness probe
 app.get("/api/health", async (c) => {
+    const chainId = Number(process.env.CHAIN_ID ?? "97");
+    const chainName = chainId === 56 ? "bsc-mainnet" : "bsc-testnet";
     try {
         const agents = await db.select().from(schema.agent).limit(1);
         return c.json({
             status: "ok",
-            chain: "bsc-testnet",
-            chainId: 97,
+            chain: chainName,
+            chainId,
             hasData: agents.length > 0,
             timestamp: Date.now(),
         });
@@ -172,6 +174,8 @@ app.get("/api/health", async (c) => {
 
 // GET /api/ready — Readiness probe (sync status)
 app.get("/api/ready", async (c) => {
+    const chainId = Number(process.env.CHAIN_ID ?? "97");
+    const chainName = chainId === 56 ? "bsc-mainnet" : "bsc-testnet";
     try {
         // Latest indexed block from rental_history
         const latestRental = await db
@@ -195,7 +199,8 @@ app.get("/api/ready", async (c) => {
 
         return c.json({
             status: "ok",
-            chain: "bsc-testnet",
+            chain: chainName,
+            chainId,
             checkpoint: rentalBlock.toString(),
             latestAgentTimestamp: agentTs.toString(),
             confirmations: CONFIRMATIONS,
