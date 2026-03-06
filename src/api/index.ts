@@ -3,10 +3,22 @@ import schema from "ponder:schema";
 import { Hono } from "hono";
 import { client, graphql } from "ponder";
 import { cors } from "hono/cors";
-import { desc, eq } from "ponder";
+import { desc, eq, and } from "ponder";
 
 const app = new Hono();
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+function formatAgentType(agentType: string): string {
+    return agentType
+        .split("_")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+}
+
+// Read chain config from env (same vars used by ponder.config.ts)
+const INDEXER_CHAIN_ID = Number(process.env.CHAIN_ID ?? 97);
+const chainSuffix = `_${INDEXER_CHAIN_ID}`;
+const INDEXER_NFA_ADDRESS = process.env[`AGENT_NFA_ADDRESS${chainSuffix}`] ?? "0x0000000000000000000000000000000000000000";
 
 // Enable CORS for frontend access
 app.use(
@@ -348,6 +360,206 @@ app.get("/api/groups/:type/:groupId", async (c) => {
         })),
         count: filtered.length,
     });
+});
+
+// ═══════════════════════════════════════════════════════
+// BAP-578: Learning Module API endpoints
+// ═══════════════════════════════════════════════════════
+
+// GET /api/agents/:tokenId/learning — Learning summary + recent history
+app.get("/api/agents/:tokenId/learning", async (c) => {
+    const tokenIdRaw = c.req.param("tokenId");
+    if (!/^\d+$/.test(tokenIdRaw)) {
+        return c.json({ error: "invalid tokenId" }, 400);
+    }
+
+    const tokenId = BigInt(tokenIdRaw);
+
+    // Get agent learning state
+    const agentRow = await db
+        .select()
+        .from(schema.agent)
+        .where(eq(schema.agent.tokenId, tokenId))
+        .limit(1);
+
+    const agentData = agentRow[0];
+
+    // Get recent learning history (last 10)
+    const history = await db
+        .select()
+        .from(schema.learningHistory)
+        .where(eq(schema.learningHistory.tokenId, tokenId))
+        .orderBy(desc(schema.learningHistory.timestamp))
+        .limit(10);
+
+    // Count total learning updates (select id only for efficiency)
+    const updateCountRows = await db
+        .select({ id: schema.learningHistory.id })
+        .from(schema.learningHistory)
+        .where(eq(schema.learningHistory.tokenId, tokenId));
+
+    return c.json({
+        tokenId: tokenIdRaw,
+        learningEnabled: agentData?.learningEnabled ?? false,
+        currentRoot: agentData?.learningRoot ?? null,
+        totalLeaves: agentData?.learningLeaves?.toString() ?? "0",
+        totalUpdates: updateCountRows.length,
+        recentHistory: history.map((h) => ({
+            id: h.id,
+            newRoot: h.newRoot,
+            leafCount: h.leafCount.toString(),
+            txHash: h.txHash,
+            blockNumber: h.blockNumber.toString(),
+            timestamp: h.timestamp.toString(),
+        })),
+    });
+});
+
+// GET /api/agents/:tokenId/learning/history — Paginated full learning history
+app.get("/api/agents/:tokenId/learning/history", async (c) => {
+    const tokenIdRaw = c.req.param("tokenId");
+    if (!/^\d+$/.test(tokenIdRaw)) {
+        return c.json({ error: "invalid tokenId" }, 400);
+    }
+
+    const limitRaw = c.req.query("limit");
+    const limit = Math.min(Math.max(1, Number(limitRaw ?? 50)), 200);
+
+    const rows = await db
+        .select()
+        .from(schema.learningHistory)
+        .where(eq(schema.learningHistory.tokenId, BigInt(tokenIdRaw)))
+        .orderBy(desc(schema.learningHistory.timestamp))
+        .limit(limit);
+
+    return c.json({
+        tokenId: tokenIdRaw,
+        items: rows.map((r) => ({
+            id: r.id,
+            newRoot: r.newRoot,
+            leafCount: r.leafCount.toString(),
+            txHash: r.txHash,
+            blockNumber: r.blockNumber.toString(),
+            timestamp: r.timestamp.toString(),
+        })),
+        count: rows.length,
+    });
+});
+
+// GET /api/discover - Agent discovery with filtering
+// Query params: agentType, learning (true/false), template (true/false), limit, offset
+app.get("/api/discover", async (c) => {
+    const agentTypeFilter = c.req.query("agentType");
+    const learningFilter = c.req.query("learning");
+    const templateFilter = c.req.query("template");
+    const limitRaw = c.req.query("limit");
+    const offsetRaw = c.req.query("offset");
+
+    const limit = Math.min(Math.max(1, Number(limitRaw ?? 50)), 200);
+    const offset = Math.max(0, Number(offsetRaw ?? 0));
+
+    // Build filter conditions
+    const conditions = [];
+    if (agentTypeFilter) {
+        conditions.push(eq(schema.agent.agentType, agentTypeFilter));
+    }
+    if (learningFilter === "true") {
+        conditions.push(eq(schema.agent.learningEnabled, true));
+    } else if (learningFilter === "false") {
+        conditions.push(eq(schema.agent.learningEnabled, false));
+    }
+    if (templateFilter === "true") {
+        conditions.push(eq(schema.agent.isTemplate, true));
+    } else if (templateFilter === "false") {
+        conditions.push(eq(schema.agent.isTemplate, false));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const rows = await db
+        .select()
+        .from(schema.agent)
+        .where(whereClause)
+        .orderBy(desc(schema.agent.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+    // P2-1 fix: select only id for count to avoid fetching all columns
+    const countRows = await db
+        .select({ id: schema.agent.id })
+        .from(schema.agent)
+        .where(whereClause);
+
+    return c.json({
+        items: rows.map((a) => ({
+            tokenId: a.tokenId.toString(),
+            owner: a.owner,
+            account: a.account,
+            agentType: a.agentType,
+            isTemplate: a.isTemplate,
+            paused: a.paused,
+            learningEnabled: a.learningEnabled,
+            learningRoot: a.learningRoot,
+            learningLeaves: a.learningLeaves?.toString() ?? "0",
+            createdAt: a.createdAt.toString(),
+        })),
+        total: countRows.length,
+        limit,
+        offset,
+    });
+});
+
+// GET /api/agents/:tokenId/metadata - ERC-8004 tokenURI target
+// Returns standardized Agent Registration File JSON from indexed data.
+// Designed as a stable tokenURI endpoint (no Runner dependency).
+app.get("/api/agents/:tokenId/metadata", async (c) => {
+    const tokenIdRaw = c.req.param("tokenId");
+    if (!/^\d+$/.test(tokenIdRaw)) {
+        return c.json({ error: "invalid tokenId" }, 400);
+    }
+
+    const agents = await db
+        .select()
+        .from(schema.agent)
+        .where(eq(schema.agent.tokenId, BigInt(tokenIdRaw)))
+        .limit(1);
+
+    const a = agents[0];
+    if (!a) {
+        return c.json({ error: "agent not found" }, 404);
+    }
+
+    // P3-3 fix: select only id for count
+    const historyCount = await db
+        .select({ id: schema.learningHistory.id })
+        .from(schema.learningHistory)
+        .where(eq(schema.learningHistory.tokenId, BigInt(tokenIdRaw)));
+
+    const metadata = {
+        version: "1.0",
+        schema: "erc8004-agent-registration",
+        name: `SHLL Agent #${tokenIdRaw}`,
+        description: `Autonomous ${formatAgentType(a.agentType ?? "unknown")} agent on ${INDEXER_CHAIN_ID === 56 ? "BNB Chain" : INDEXER_CHAIN_ID === 97 ? "BNB Chain Testnet" : `Chain ${INDEXER_CHAIN_ID}`}`,
+        agentType: a.agentType ?? "unknown",
+        chainId: INDEXER_CHAIN_ID,
+        contracts: {
+            nfa: INDEXER_NFA_ADDRESS,
+        },
+        standards: ["BAP-578", "ERC-8004", "ERC-4907"],
+        learning: {
+            enabled: a.learningEnabled ?? false,
+            totalLeaves: a.learningLeaves?.toString() ?? "0",
+            currentRoot: a.learningRoot ?? null,
+            totalUpdates: historyCount.length,
+        },
+        isTemplate: a.isTemplate,
+        paused: a.paused ?? false,
+        createdAt: a.createdAt.toString(),
+    };
+
+    // Set cache headers for tokenURI resolvers
+    c.header("Cache-Control", "public, max-age=300");
+    return c.json(metadata);
 });
 
 export default app;
