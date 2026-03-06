@@ -362,11 +362,8 @@ app.get("/api/groups/:type/:groupId", async (c) => {
     });
 });
 
-// ═══════════════════════════════════════════════════════
-// BAP-578: Learning Module API endpoints
-// ═══════════════════════════════════════════════════════
-
-// GET /api/agents/:tokenId/learning — Learning summary + recent history
+// GET /api/agents/:tokenId/learning — Learning summary
+// NOTE: Returns stub data until LearningModule is deployed on this chain.
 app.get("/api/agents/:tokenId/learning", async (c) => {
     const tokenIdRaw = c.req.param("tokenId");
     if (!/^\d+$/.test(tokenIdRaw)) {
@@ -374,83 +371,31 @@ app.get("/api/agents/:tokenId/learning", async (c) => {
     }
 
     const tokenId = BigInt(tokenIdRaw);
-
-    // Get agent learning state
     const agentRow = await db
         .select()
         .from(schema.agent)
         .where(eq(schema.agent.tokenId, tokenId))
         .limit(1);
 
-    const agentData = agentRow[0];
-
-    // Get recent learning history (last 10)
-    const history = await db
-        .select()
-        .from(schema.learningHistory)
-        .where(eq(schema.learningHistory.tokenId, tokenId))
-        .orderBy(desc(schema.learningHistory.timestamp))
-        .limit(10);
-
-    // Count total learning updates (select id only for efficiency)
-    const updateCountRows = await db
-        .select({ id: schema.learningHistory.id })
-        .from(schema.learningHistory)
-        .where(eq(schema.learningHistory.tokenId, tokenId));
-
-    return c.json({
-        tokenId: tokenIdRaw,
-        learningEnabled: agentData?.learningEnabled ?? false,
-        currentRoot: agentData?.learningRoot ?? null,
-        totalLeaves: agentData?.learningLeaves?.toString() ?? "0",
-        totalUpdates: updateCountRows.length,
-        recentHistory: history.map((h) => ({
-            id: h.id,
-            newRoot: h.newRoot,
-            leafCount: h.leafCount.toString(),
-            txHash: h.txHash,
-            blockNumber: h.blockNumber.toString(),
-            timestamp: h.timestamp.toString(),
-        })),
-    });
-});
-
-// GET /api/agents/:tokenId/learning/history — Paginated full learning history
-app.get("/api/agents/:tokenId/learning/history", async (c) => {
-    const tokenIdRaw = c.req.param("tokenId");
-    if (!/^\d+$/.test(tokenIdRaw)) {
-        return c.json({ error: "invalid tokenId" }, 400);
+    if (!agentRow[0]) {
+        return c.json({ error: "agent not found" }, 404);
     }
 
-    const limitRaw = c.req.query("limit");
-    const limit = Math.min(Math.max(1, Number(limitRaw ?? 50)), 200);
-
-    const rows = await db
-        .select()
-        .from(schema.learningHistory)
-        .where(eq(schema.learningHistory.tokenId, BigInt(tokenIdRaw)))
-        .orderBy(desc(schema.learningHistory.timestamp))
-        .limit(limit);
-
     return c.json({
         tokenId: tokenIdRaw,
-        items: rows.map((r) => ({
-            id: r.id,
-            newRoot: r.newRoot,
-            leafCount: r.leafCount.toString(),
-            txHash: r.txHash,
-            blockNumber: r.blockNumber.toString(),
-            timestamp: r.timestamp.toString(),
-        })),
-        count: rows.length,
+        learningEnabled: false,
+        currentRoot: null,
+        totalLeaves: "0",
+        totalUpdates: 0,
+        recentHistory: [],
+        _note: "LearningModule not deployed on this chain yet",
     });
 });
 
 // GET /api/discover - Agent discovery with filtering
-// Query params: agentType, learning (true/false), template (true/false), limit, offset
+// Query params: agentType, template (true/false), limit, offset
 app.get("/api/discover", async (c) => {
     const agentTypeFilter = c.req.query("agentType");
-    const learningFilter = c.req.query("learning");
     const templateFilter = c.req.query("template");
     const limitRaw = c.req.query("limit");
     const offsetRaw = c.req.query("offset");
@@ -458,15 +403,10 @@ app.get("/api/discover", async (c) => {
     const limit = Math.min(Math.max(1, Number(limitRaw ?? 50)), 200);
     const offset = Math.max(0, Number(offsetRaw ?? 0));
 
-    // Build filter conditions
+    // Build filter conditions (no learningEnabled — field not in schema yet)
     const conditions = [];
     if (agentTypeFilter) {
         conditions.push(eq(schema.agent.agentType, agentTypeFilter));
-    }
-    if (learningFilter === "true") {
-        conditions.push(eq(schema.agent.learningEnabled, true));
-    } else if (learningFilter === "false") {
-        conditions.push(eq(schema.agent.learningEnabled, false));
     }
     if (templateFilter === "true") {
         conditions.push(eq(schema.agent.isTemplate, true));
@@ -484,7 +424,6 @@ app.get("/api/discover", async (c) => {
         .limit(limit)
         .offset(offset);
 
-    // P2-1 fix: select only id for count to avoid fetching all columns
     const countRows = await db
         .select({ id: schema.agent.id })
         .from(schema.agent)
@@ -498,9 +437,6 @@ app.get("/api/discover", async (c) => {
             agentType: a.agentType,
             isTemplate: a.isTemplate,
             paused: a.paused,
-            learningEnabled: a.learningEnabled,
-            learningRoot: a.learningRoot,
-            learningLeaves: a.learningLeaves?.toString() ?? "0",
             createdAt: a.createdAt.toString(),
         })),
         total: countRows.length,
@@ -510,8 +446,6 @@ app.get("/api/discover", async (c) => {
 });
 
 // GET /api/agents/:tokenId/metadata - ERC-8004 tokenURI target
-// Returns standardized Agent Registration File JSON from indexed data.
-// Designed as a stable tokenURI endpoint (no Runner dependency).
 app.get("/api/agents/:tokenId/metadata", async (c) => {
     const tokenIdRaw = c.req.param("tokenId");
     if (!/^\d+$/.test(tokenIdRaw)) {
@@ -529,12 +463,6 @@ app.get("/api/agents/:tokenId/metadata", async (c) => {
         return c.json({ error: "agent not found" }, 404);
     }
 
-    // P3-3 fix: select only id for count
-    const historyCount = await db
-        .select({ id: schema.learningHistory.id })
-        .from(schema.learningHistory)
-        .where(eq(schema.learningHistory.tokenId, BigInt(tokenIdRaw)));
-
     const metadata = {
         version: "1.0",
         schema: "erc8004-agent-registration",
@@ -546,18 +474,11 @@ app.get("/api/agents/:tokenId/metadata", async (c) => {
             nfa: INDEXER_NFA_ADDRESS,
         },
         standards: ["BAP-578", "ERC-8004", "ERC-4907"],
-        learning: {
-            enabled: a.learningEnabled ?? false,
-            totalLeaves: a.learningLeaves?.toString() ?? "0",
-            currentRoot: a.learningRoot ?? null,
-            totalUpdates: historyCount.length,
-        },
         isTemplate: a.isTemplate,
         paused: a.paused ?? false,
         createdAt: a.createdAt.toString(),
     };
 
-    // Set cache headers for tokenURI resolvers
     c.header("Cache-Control", "public, max-age=300");
     return c.json(metadata);
 });

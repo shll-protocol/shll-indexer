@@ -40,10 +40,6 @@ export const agent = onchainTable("agent", (t) => ({
   templateId: t.bigint(), // non-null only for instances
   // BAP-578 pause support
   paused: t.boolean().default(false),
-  // BAP-578 Learning Module
-  learningEnabled: t.boolean().default(false),
-  learningRoot: t.hex(),
-  learningLeaves: t.bigint().default(0n),
   createdAt: t.bigint().notNull(),
 }), (table) => ({
   typeIdx: index().on(table.agentType),
@@ -144,22 +140,5 @@ export const commitFailure = onchainTable("commit_failure", (t) => ({
   timestamp: t.bigint().notNull(),
 }), (table) => ({
   instanceIdx: index().on(table.instanceId, table.timestamp),
-}));
-
-// ═══════════════════════════════════════════════════════
-// BAP-578: LearningModule — Proof of Prompt event history
-// ═══════════════════════════════════════════════════════
-
-// Learning root update history (one row per batchAppendLearning tx)
-export const learningHistory = onchainTable("learning_history", (t) => ({
-  id: t.text().primaryKey(),          // txHash-logIndex
-  tokenId: t.bigint().notNull(),
-  newRoot: t.hex().notNull(),
-  leafCount: t.bigint().notNull(),
-  txHash: t.hex().notNull(),
-  blockNumber: t.bigint().notNull(),
-  timestamp: t.bigint().notNull(),
-}), (table) => ({
-  tokenIdx: index().on(table.tokenId, table.timestamp),
 }));
 

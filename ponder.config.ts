@@ -4,7 +4,7 @@ import { http, type Transport } from "viem";
 import { ListingManagerAbi } from "./abis/ListingManagerAbi";
 import { AgentNFAAbi } from "./abis/AgentNFAAbi";
 import { PolicyGuardV4Abi } from "./abis/PolicyGuardV4Abi";
-import { LearningModuleAbi } from "./abis/LearningModuleAbi";
+
 
 // ─── Dynamic Chain ID ───────────────────────────────────────────
 // Set CHAIN_ID=56 for BSC Mainnet, defaults to 97 (BSC Testnet)
@@ -43,8 +43,6 @@ const agentNfaAddress =
   process.env[`AGENT_NFA_ADDRESS${chainSuffix}`] ?? "0x0000000000000000000000000000000000000000";
 const policyGuardV4Address =
   process.env[`POLICY_GUARD_V4_ADDRESS${chainSuffix}`] ?? "0x0000000000000000000000000000000000000000";
-const learningModuleAddress =
-  process.env[`LEARNING_MODULE_ADDRESS${chainSuffix}`] ?? "0x0000000000000000000000000000000000000000";
 
 // Default start blocks per network
 const defaultStartBlock: Record<number, number> = {
@@ -278,7 +276,6 @@ console.log("DEBUG: ETH_GET_LOGS_BLOCK_RANGE =", ethGetLogsBlockRange);
 console.log(`DEBUG: LISTING_MANAGER_ADDRESS${chainSuffix} =`, listingManagerAddress);
 console.log(`DEBUG: AGENT_NFA_ADDRESS${chainSuffix} =`, agentNfaAddress);
 console.log(`DEBUG: POLICY_GUARD_V4_ADDRESS${chainSuffix} =`, policyGuardV4Address);
-console.log(`DEBUG: LEARNING_MODULE_ADDRESS${chainSuffix} =`, learningModuleAddress);
 
 export default createConfig({
   chains: {
@@ -309,12 +306,6 @@ export default createConfig({
       chain: chainName as "bscTestnet",
       abi: PolicyGuardV4Abi,
       address: policyGuardV4Address as `0x${string}`,
-      startBlock: contractStartBlock,
-    },
-    LearningModule: {
-      chain: chainName as "bscTestnet",
-      abi: LearningModuleAbi,
-      address: learningModuleAddress as `0x${string}`,
       startBlock: contractStartBlock,
     },
   },
