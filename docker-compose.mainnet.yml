@@ -4,7 +4,7 @@ version: "3.8"
 
 services:
   shll-indexer-mainnet:
-    image: ghcr.io/kledx/shll-indexer:latest
+    image: ghcr.io/shll-protocol/shll-indexer:latest
     pull_policy: always
     restart: unless-stopped
     ports:
@@ -20,6 +20,7 @@ services:
       - AGENT_NFA_ADDRESS_56=${AGENT_NFA_ADDRESS_56}
       - LISTING_MANAGER_ADDRESS_56=${LISTING_MANAGER_ADDRESS_56}
       - POLICY_GUARD_V4_ADDRESS_56=${POLICY_GUARD_V4_ADDRESS_56}
+      - LEARNING_MODULE_ADDRESS_56=${LEARNING_MODULE_ADDRESS_56:-0x0000000000000000000000000000000000000000}
       - CONTRACT_START_BLOCK_56=${CONTRACT_START_BLOCK_56}
 
       # ─── RPC Tuning ───
